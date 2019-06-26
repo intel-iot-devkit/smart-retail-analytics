@@ -1,0 +1,9 @@
+video: resources/head-pose-face-detection-female.mp4
+type: shopper
+
+video: resources/bottle-detection.mp4
+type: shelf
+label: bottle
+
+video: resources/face-demographics-walking.mp4
+type: traffic

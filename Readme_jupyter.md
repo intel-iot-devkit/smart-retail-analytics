@@ -1,4 +1,4 @@
-# Smart Retail Analytics
+# Retail Analytics
 
 | Details           |              |
 |-----------------------|---------------|
@@ -6,7 +6,7 @@
 | Programming Language: |  Python* 3.5 |
 | Time to Complete:    |  50-70min     |
 
-![Smart Retail Analytics](./docs/images/retail-analytics.png)
+![Retail Analytics](./docs/images/retail-analytics.png)
 
 An application capable of detecting objects on any number of screens.
 
@@ -43,7 +43,6 @@ The application is capable of processing multiple video input feeds, each having
 
 
 ![Retail Analytics](./docs/images/architectural-diagram.png)
-
 
 
 ## Setup
@@ -86,7 +85,7 @@ sudo grafana-cli plugins install ryantxu-ajax-panel
 #### Install Python* Package Dependencies
 ```
 sudo apt-get install python3-pip
-pip3 install influxdb numpy flask
+pip3 install influxdb numpy flask jupyter
 ```
 
 ## Configure the application
@@ -98,7 +97,7 @@ To download these models:
    ```
    cd /opt/intel/openvino/deployment_tools/tools/model_downloader
    ```
-* Specify which model to download using the argument __--name__ :
+* Specify which model to download using the argument __--name__:
    ```
    sudo ./downloader.py --name face-detection-adas-0001
    sudo ./downloader.py --name head-pose-estimation-adas-0001
@@ -112,15 +111,14 @@ To download these models:
    sudo ./downloader.py --name emotions-recognition-retail-0003-fp16
    ```
 
-* These models will be downloaded in the locations given below: 
+* These models will be downloaded in the locations given below:
    * **face-detection**: /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/
-   * **head-pose-estimation**: /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/
+   * **head-pose-estimation**: /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt
 
    * **emotions-recognition**: /opt/intel/openvino/deployment_tools/tools/model_downloader/Retail/object_attributes/emotions_recognition/0003/dldt/
 
 <br>
 For video feed types __traffic__ and __shelf__, mobilenet-ssd model is used that can be downloaded using `downloader` script present in Intel® Distribution of OpenVINO™ toolkit. Instructions to download the mobilenet-ssd model is given below.
-
 
 #### Download the mobilenet-ssd Model
 * Go to the `model_downloader` directory present inside Intel® Distribution of OpenVINO™ toolkit install directory:
@@ -221,37 +219,72 @@ You must configure the environment to use the Intel® Distribution of OpenVINO�
 source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
 ```
 
-## Run the application
-To run the application with the required models:
-```
-python3 main.py -fm /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/tools/model_downloader/Retail/object_attributes/emotions_recognition/0003/dldt/emotions-recognition-retail-0003.xml -om ./resources/FP32/mobilenet-ssd.xml -lb ./resources/labels.txt -l /opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
-```
-Once the command is executed in the terminal, configure the Grafana dashboard using the instructions given in the next section to see the output.
+## Run the application on Jupyter*
+
+* Open the Jupyter notebook.
+   ```
+   jupyter notebook
+   ```
+
+   ![Jupyter Notebook](./docs/images/jupyter1.png)
+
+
+**Follow the below instructions to run the code on Jupyter:**
+
+1. Click on **New** button on the right side of the Jupyter window.
+
+2. Click on **Python 3** option from the drop down list.
+
+3. Export the below environment variables in the first cell of Jupyter and press **Shift+Enter**.<br>
+   ```
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/face-detection-adas-0001.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/head-pose-estimation-adas-0001.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Retail/object_attributes/emotions_recognition/0003/dldt/emotions-recognition-retail-0003.xml
+   %env OBJ_MODEL=./resources/FP32/mobilenet-ssd.xml
+   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
+   %env LABEL_FILE=./resources/labels.txt
+   ```
+
+5. Copy the code from **main_jupyter.py** and paste it in the next cell and press **Shift+Enter**.
+6. Output of the application will be streamed on Grafana. To configure the Grafana dashboard follow the instructions in the next section.
+
+6. Alternatively, code can be run in the following way.
+
+   i. Click on the main_jupyter.ipynb file in the Jupyter notebook window.
+
+   ii. Click on the Kernel menu and then select **Restart & Run All** from the drop-down list.
+
+   iii. Click on Restart and Run All Cells.
+
+   ![Jupyter Notebook](./docs/images/jupyter2.png)
 
  ## Running on different hardware 
+ The application can use different hardware accelerator for different models. The user can specify the target device for each model using the environmental variables FACE_DEVICE, MOOD_DEVICE, POSE_DEVICE, OBJ_DEVICE. Target devices supported by the application are `CPU`, `GPU`, `MYRIAD` and `HETERO:HDDL,CPU`.<br>
+ 
+ For example :
+   To run Face Detection model with FP16 and Emotions Recognition model with FP32 on GPU, Head Pose Estimation model on MYRIAD and mobilenet-ssd on CPU, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list to run the application.
 
-The application can use different hardware accelerator for different models. The user can specify the target device for each model using the command line argument as below:
-* `-d_fm <device>`: Target device for Face Detection network (CPU, GPU, MYRIAD or HETERO:HDDL,CPU). 
-* `-d_pm <device>`: Target device for Head Pose Estimation network (CPU, GPU, MYRIAD or HETERO:HDDL,CPU).
-* `-d_mm <device>`: Target device for Emotions Recognition network (CPU, GPU, MYRIAD or HETERO:HDDL,CPU).
-* `-d_om <device>`: Target device for mobilenet-ssd network (CPU, GPU, MYRIAD or HETERO:HDDL,CPU).
+   ```
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/face-detection-adas-0001-fp16.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/head-pose-estimation-adas-0001-fp16.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/tools/model_downloader/Retail/object_attributes/emotions_recognition/0003/dldt/emotions-recognition-retail-0003.xml
+   %env OBJ_MODEL=./resources/FP32/mobilenet-ssd.xml
+   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
+   %env LABEL_FILE=./resources/labels.txt
+   %env FACE_DEVICE=GPU
+   %env POSE_DEVICE=MYRIAD
+   %env MOOD_DEVICE=GPU
+   %env OBJ_DEVICE=CPU
+   ```
 
+   ![Jupyter Notebook](./docs/images/jupyter3.png)
 
-
-__For example:__<br>
-To run Face Detection model with FP16 and Emotions Recognition model with FP32 on GPU, Head Pose Estimation model on MYRIAD and mobilenet-ssd on CPU, use the below command:
-```
-python3 main.py -fm /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/face-detection-adas-0001-fp16.xml -pm /opt/intel/openvino/deployment_tools/tools/model_downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/head-pose-estimation-adas-0001-fp16.xml -mm /opt/intel/openvino/deployment_tools/tools/model_downloader/Retail/object_attributes/emotions_recognition/0003/dldt/emotions-recognition-retail-0003.xml -om ./resources/FP32/mobilenet-ssd.xml -lb ./resources/labels.txt -l /opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so -d_fm GPU -d_pm MYRIAD -d_mm GPU -d_om CPU
-```
-
-By default, the application runs on CPU.<br>
-**Note:** The Intel® Neural Compute Stick and HDDL-R can only run FP16 models. The model that is passed to the application, must be of data type FP16. 
+**Note:** The Intel® Neural Compute Stick and HDDL-R can only run FP16 models. The model that is passed to the application, must be of data type FP16.
 
 
 ### Visualization on Grafana
 
 1. Start the Grafana server:
-
    ```
    sudo service grafana-server start
    ```
@@ -274,19 +307,14 @@ By default, the application runs on CPU.<br>
 
    ![Retail Analytics](./docs/images/grafana1.png)
 
-7. Click on **+** icon present on the left side of the browser, select **import**.
+7. Click on **+**  icon present on the left side of the browser, select **import**.
 
 8. Click on **Upload.json File**.
 
-9. Select the file name __retail-analytics.json__ from retail-analytics directory.
+9. Select the file name "retail-analytics.json" from retail-analytics directory.
 
 10. Select "Retail_Analytics" in **Select a influxDB data source**. 
 
     ![Retail Analytics](./docs/images/grafana2.png)
 
 11. Click on import.
-
-
-## Containerize the Application
-
-To containerize the retail-analytics application using docker container, follow the instruction provided [here](./docker).
