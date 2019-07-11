@@ -39,7 +39,7 @@ There are three feed types that application supports:
 
 * Shelf: This feed type is used to keep a check on the product inventory. If the video feed type is shelf, an object detection model is used to detect the product specified by the user in the frame from this video stream. It detects the objects and gives the number of objects present in the frame.
 
-The application is capable of processing multiple video input feeds, each having different feed type. The data obtained from these videos is store in InfluxDB for analysis and visualized on Grafana. It used Flask python web framework to live stream the output videos to the Grafana.
+The application is capable of processing multiple video input feeds, each having different feed type. The data obtained from these videos is store in InfluxDB for analysis and visualized on Grafana. It used Flask Python web framework to live stream the output videos to the Grafana.
 
 
 ![Retail Analytics](./docs/images/architectural-diagram.png)
@@ -245,10 +245,10 @@ python3 main.py -fm /opt/intel/openvino/deployment_tools/tools/model_downloader/
 ```
 
 By default, the application runs on CPU.<br>
-**Note:** The Intel® Neural Compute Stick and HDDL-R can only run FP16 models. The model that is passed to the application, must be of data type FP16. 
+**Note:** The Intel® Neural Compute Stick 2 and HDDL-R can only run FP16 models. The model that is passed to the application, must be of data type FP16. 
 
 
-### Visualization on Grafana
+### Visualization on Grafana*
 
 1. Start the Grafana server:
 
