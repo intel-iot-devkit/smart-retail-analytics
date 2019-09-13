@@ -21,19 +21,20 @@
 
 import os
 import sys
-import cv2
 import math
 import time
-import numpy as np
-import logging as log
 from collections import namedtuple
+from argparse import ArgumentParser
+import logging as log
+import numpy as np
 from inference import Network
 from influxdb import InfluxDBClient
 from flask import Flask, render_template, Response
+import cv2
+import json
 
 # Constants
-CONF_FILE = "./resources/conf.txt"
-CONF_CANDIDATE_CONFIDENCE = 6
+CONFIG_FILE = "../resources/config.json"
 MAX_FRAME_GONE = 3
 INTEREST_COUNT_TIME = 5
 SENTIMENT_LABEL = ['neutral', 'happy', 'sad', 'surprise', 'anger']
@@ -52,7 +53,9 @@ not_interested = 0
 db_client = None
 myriad_plugin = None
 Point = namedtuple("Point", "x,y")
-
+accepted_devices = ['CPU', 'GPU', 'MYRIAD', 'HETERO:FPGA,CPU', 'HETERO:HDDL,CPU']
+is_async_mode = True
+template_dir = os.path.abspath('../templates')
 
 class Centroid:
     """
@@ -95,6 +98,8 @@ class VideoCap:
         self.infer_network = None
         self.nchw = []
         self.utime = time.time()
+        self.curr_req = 0
+        self.next_req = 1
 
         if self.type == 'shopper':
             self.nchw_hp = []
@@ -111,9 +116,12 @@ class VideoCap:
             self.changed_count = [False] * len(self.labels)
             self.candidate_count = [0] * len(self.labels)
             self.candidate_confidence = [0] * len(self.labels)
+            self.CONF_CANDIDATE_CONFIDENCE = 6
 
             if self.type == 'traffic':
                 self.mog = cv2.createBackgroundSubtractorMOG2()
+                self.CONF_CANDIDATE_CONFIDENCE = 3
+                self.thresh = 0.45
 
 
 def parse_conf_file():
@@ -122,66 +130,47 @@ def parse_conf_file():
 
     :return video_caps: List of VideoCap object containing input stream data
     """
-    global CONF_FILE
+    global CONFIG_FILE
     global check_feed_type
 
     video_caps = []
-    input_number = 0
 
-    assert os.path.isfile(CONF_FILE), "{} file doesn't exist".format(CONF_FILE)
-    file = open(CONF_FILE, 'r')
-    file_data = file.readlines()
-
-    for line in range(len(file_data)):
+    assert os.path.isfile(CONFIG_FILE), "{} file doesn't exist".format(CONFIG_FILE)
+    config = json.loads(open(CONFIG_FILE).read())
+    for idx, item in enumerate(config['inputs']):
         labels = []
-        parse_video = file_data[line].split()
-        if len(parse_video) < 2:
-            continue
-        if parse_video[0] == 'video:' or parse_video[0] == 'Video:':
-            input_number += 1
-            line += 1
-            if line >= len(file_data):
-                break
-            parse_feed_type = file_data[line].split()
-            if len(parse_feed_type) < 2:
-                print("Ignoring video {}... Format error".format(parse_video[1]))
+        parse_video = item['video']
+        input_number = idx + 1
+        if 'type' in item.keys():
+            feed_type = item['type']
+            if len(feed_type) == 0:
+                print("Ignoring video {}... Format error".format(parse_video))
                 continue
-            if parse_feed_type[0] == 'type:' or parse_feed_type[0] == 'Type:':
-                assert parse_feed_type[1] in ["shopper", "traffic", "shelf"], "Invalid type found in {}".format(
-                    parse_video[1])
-                feed_type = parse_feed_type[1]
-                if feed_type == 'shelf':
-                    check_feed_type[2] = True
-                    line += 1
-                    if line >= len(file_data):
-                        break
-                    parse_label = file_data[line].split()
-                    if len(parse_label) < 2:
-                        print("Ignoring video {}... Format error".format(parse_video[1]))
+            if feed_type == 'shelf':
+                check_feed_type[2] = True
+                if 'label' in item.keys():
+                    labels = [item['label']]
+                    if len(labels) == 0:
+                        print("Ignoring video {}... Format error".format(parse_video))
                         continue
-                    if parse_label[0] == 'label:' or parse_label[0] == 'Label:':
-                        labels.extend(parse_label[1:])
-                    else:
-                        print("Format error while reading labels for {}".format(parse_feed_type[1]))
-                        continue
-                elif feed_type == 'traffic':
-                    check_feed_type[1] = True
-                    labels.append('person')
-
-                elif feed_type == 'shopper':
-                    check_feed_type[0] = True
-
-                if parse_video[1].isdigit():
-                    video_cap = VideoCap(int(parse_video[1]), input_number, feed_type, labels)
                 else:
-                    assert os.path.isfile(parse_video[1]), "{} doesn't exist".format(parse_video[1])
-                    video_cap = VideoCap(parse_video[1], input_number, feed_type, labels)
-                video_cap.input_name = parse_video[1]
-                video_caps.append(video_cap)
+                    print("Format error while reading labels for {}".format(feed_type))
+                    continue
+            elif feed_type == 'traffic':
+                check_feed_type[1] = True
+                labels = ['person']
+            elif feed_type == 'shopper':
+                check_feed_type[0] = True
+            if parse_video.isdigit():
+                video_cap = VideoCap(int(parse_video), input_number, feed_type, labels)
             else:
-                print("Feed type not specified for ", parse_video[0])
+                assert os.path.isfile(parse_video), "{} doesn't exist".format(parse_video)
+                video_cap = VideoCap(parse_video, input_number, feed_type, labels)
+            video_cap.input_name = parse_video
+            video_caps.append(video_cap)
+        else:
+            print("Feed type not specified for ", parse_video)
 
-    file.close()
     for video_cap in video_caps:
         assert video_cap.vc.isOpened(), "Could not open {} for reading".format(video_cap.input_name)
         video_cap.input_width = video_cap.vc.get(3)
@@ -193,7 +182,7 @@ def parse_conf_file():
     return video_caps
 
 
-def load_model_device(infer_network, model, device, in_size, out_size, num_requests, cpu_extension):
+def load_model_device(infer_network, model, device, in_size, out_size, num_requests, cpu_extension, tag):
     """
     Loads the networks
 
@@ -206,6 +195,16 @@ def load_model_device(infer_network, model, device, in_size, out_size, num_reque
     :param cpu_extension: extension for the CPU device
     :return:  Shape of input layer
     """
+    if 'MULTI' not in device and device not in accepted_devices:
+        print("Unsupported device: " + device)
+        sys.exit(1)
+    elif 'MULTI' in device:
+        target_devices = device.split(':')[1].split(',')
+        for multi_device in target_devices:
+            if multi_device not in accepted_devices:
+                print("Unsupported device: " + device)
+                sys.exit(1)
+
     global myriad_plugin
     if device == 'MYRIAD':
         if myriad_plugin is None:
@@ -213,7 +212,7 @@ def load_model_device(infer_network, model, device, in_size, out_size, num_reque
         else:
             nchw = infer_network.load_model(model, device, in_size, out_size, num_requests, plugin=myriad_plugin)[1]
     else:
-        nchw = infer_network.load_model(model, device, in_size, out_size, num_requests, cpu_extension)[1]
+        nchw = infer_network.load_model(model, device, in_size, out_size, num_requests, cpu_extension, tag)[1]
 
     return nchw
 
@@ -232,32 +231,42 @@ def load_models(video_caps):
     mood_device = os.environ['MOOD_DEVICE'] if 'MOOD_DEVICE' in os.environ.keys() else "CPU"
     pose_device = os.environ['POSE_DEVICE'] if 'POSE_DEVICE' in os.environ.keys() else "CPU"
     obj_device = os.environ['OBJ_DEVICE'] if 'OBJ_DEVICE' in os.environ.keys() else "CPU"
+    person_device = os.environ['PERSON_DEVICE'] if 'PERSON_DEVICE' in os.environ.keys() else "CPU"
 
     cpu_extension = os.environ['CPU_EXTENSION'] if 'CPU_EXTENSION' in os.environ.keys() else None
     face_model = os.environ['FACE_MODEL'] if 'FACE_MODEL' in os.environ.keys() else None
     pose_model = os.environ['POSE_MODEL'] if 'POSE_MODEL' in os.environ.keys() else None
     mood_model = os.environ['MOOD_MODEL'] if 'MOOD_MODEL' in os.environ.keys() else None
     obj_model = os.environ['OBJ_MODEL'] if 'OBJ_MODEL' in os.environ.keys() else None
+    person_model = os.environ['PERSON_MODEL'] if 'PERSON_MODEL' in os.environ.keys() else None
 
     # Check if one the feed type is "shopper". If yes, load the face, head pose and mood detection model
     if check_feed_type[0]:
         assert face_model, 'Please specify the path to face detection model using the environment variable FACE_MODEL'
         assert pose_model, 'Please specify the path to head pose model using the environment variable POSE_MODEL'
         assert mood_model, 'Please specify the path to mood detection model using the environment variable MOOD_MODEL'
+        
         infer_network_face = Network()
         infer_network_pose = Network()
         infer_network_mood = Network()
 
-        nchw_fd = load_model_device(infer_network_face, face_model, face_device, 1, 1, 0, cpu_extension)
-        nchw_hp = load_model_device(infer_network_pose, pose_model, pose_device, 1, 3, 0, cpu_extension)
-        nchw_md = load_model_device(infer_network_mood, mood_model, mood_device, 1, 1, 0, cpu_extension)
+        tag_face = {"VPU_HDDL_GRAPH_TAG":"tagFace"}
+        tag_pose = {"VPU_HDDL_GRAPH_TAG":"tagPose"}
+        tag_mood = {"VPU_HDDL_GRAPH_TAG":"tagMood"}
+        nchw_fd = load_model_device(infer_network_face, face_model, face_device, 1, 1, 2, cpu_extension, tag_face)
+        nchw_hp = load_model_device(infer_network_pose, pose_model, pose_device, 1, 3, 2, cpu_extension, tag_pose)
+        nchw_md = load_model_device(infer_network_mood, mood_model, mood_device, 1, 1, 2, cpu_extension, tag_mood)
 
     # Check if one the feed type is "traffic" or "shelf". If yes, load the mobilenet-ssd model
-    if check_feed_type[1] or check_feed_type[2]:
-        assert obj_model, 'Please specify the path to object detection model using the environment variable OBJMODEL'
+    if check_feed_type[2]:
         infer_network = Network()
-        nchw = load_model_device(infer_network, obj_model, obj_device, 1, 1, 2, cpu_extension)
-
+        tag_obj = {"VPU_HDDL_GRAPH_TAG":"tagMobile"}
+        nchw = load_model_device(infer_network, obj_model, obj_device, 1, 1, 2, cpu_extension, tag_obj)
+    if check_feed_type[1]:
+        infer_network_person = Network()
+        tag_person = {"VPU_HDDL_GRAPH_TAG":"tagPerson"}
+        nchw_pr = load_model_device(infer_network_person, person_model, person_device, 2, 1, 2,
+                                    cpu_extension, tag_person)
     for video_cap in video_caps:
         if video_cap.type == 'shopper':
             video_cap.infer_network = infer_network_face
@@ -267,16 +276,19 @@ def load_models(video_caps):
             video_cap.nchw_hp.extend(nchw_hp)
             video_cap.nchw_md.extend(nchw_md)
 
-        if video_cap.type == 'traffic' or video_cap.type == 'shelf':
+        if video_cap.type == 'shelf':
             video_cap.infer_network = infer_network
             video_cap.nchw.extend(nchw)
+        if video_cap.type == 'traffic':
+            video_cap.infer_network = infer_network_person
+            video_cap.nchw.extend(nchw_pr)
 
 
 def object_detection(video_cap, res):
     """
     Parse the inference result to get the detected object
 
-    :param video_cap: VideoCap object of the frame on which the object is detected
+    :param video_cap: VideoCap object of the frame on which object is detected
     :param res: Inference output
     :return obj_det: List of coordinates of bounding boxes of the objects detected
     """
@@ -284,11 +296,15 @@ def object_detection(video_cap, res):
 
     for obj in res[0][0]:
         label = int(obj[1]) - 1
-        # Draw the objects only when probability is more than specified threshold
-        if obj[2] > video_cap.thresh:
 
-            # If the feed type is traffic or shelf, look only for the objects that are specified by the user
-            if video_cap.type == 'traffic' or video_cap.type == 'shelf':
+        # Draw objects only when probability is more than specified threshold
+        if obj[2] > video_cap.thresh:
+            # If the feed type is traffic shelf, look only for the person
+            if  video_cap.type == 'traffic' and label == 0:
+                video_cap.current_count[label] += 1
+
+            # If the feed type is traffic or shelf, look only for the objects specified by the user
+            if video_cap.type == 'shelf':
                 if label not in video_cap.labels_map:
                     continue
                 label_idx = video_cap.labels_map.index(label)
@@ -353,7 +369,7 @@ def process_output(video_cap):
             video_cap.candidate_confidence[i] = 0
             video_cap.candidate_count[i] = video_cap.current_count[i]
 
-        if video_cap.candidate_confidence[i] == CONF_CANDIDATE_CONFIDENCE:
+        if video_cap.candidate_confidence[i] == video_cap.CONF_CANDIDATE_CONFIDENCE:
             video_cap.candidate_confidence[i] = 0
             video_cap.changed_count[i] = True
         else:
@@ -499,6 +515,7 @@ def update_centroid(points, looking, sentiment, fps):
         for person in tracked_person:
             if person.counted is False:
                 positive = person.positive + person.neutral
+
                 # If the person is looking at the camera for specified time
                 # and his mood is positive, increment the interested variable
                 if (person.looking > fps * INTEREST_COUNT_TIME) and (positive > person.negative):
@@ -511,7 +528,7 @@ def update_centroid(points, looking, sentiment, fps):
                     person.counted = True
 
 
-def detect_head_pose_and_emotions(video_cap, object_det):
+def detect_head_pose_and_emotions(video_cap, object_det, cur_request_id_sh, next_request_id_sh):
     """
     Detect the head pose and emotions of the faces detected
 
@@ -522,6 +539,7 @@ def detect_head_pose_and_emotions(video_cap, object_det):
 
     global SENTIMENT_LABEL
     global centroids
+    global is_async_mode
 
     frame_centroids = []
     looking = []
@@ -539,37 +557,50 @@ def detect_head_pose_and_emotions(video_cap, object_det):
         frame_centroids.append(point)
 
         # Check the head pose
-        head_pose = video_cap.frame[ymin:ymax, xmin:xmax]
-        in_frame = cv2.resize(head_pose, (video_cap.nchw_hp[3], video_cap.nchw_hp[2]))
-        in_frame = in_frame.transpose((2, 0, 1))
-        in_frame = in_frame.reshape((video_cap.nchw_hp[0], video_cap.nchw_hp[1],
+        if is_async_mode:
+            head_pose = video_cap.next_frame[ymin:ymax, xmin:xmax]
+            in_frame = cv2.resize(head_pose, (video_cap.nchw_hp[3], video_cap.nchw_hp[2]))
+            in_frame = in_frame.transpose((2, 0, 1))
+            in_frame = in_frame.reshape((video_cap.nchw_hp[0], video_cap.nchw_hp[1],
                                      video_cap.nchw_hp[2], video_cap.nchw_hp[3]))
 
-        video_cap.infer_network_hp.exec_net(0, in_frame)
-        video_cap.infer_network_hp.wait(0)
-
-        # Parse head pose detection results
-        angle_p_fc = video_cap.infer_network_hp.get_output(0, "angle_p_fc")
-        angle_y_fc = video_cap.infer_network_hp.get_output(0, "angle_y_fc")
-
-        # Check if the person is looking at the camera
-        if (angle_y_fc > -22.5) & (angle_y_fc < 22.5) & (angle_p_fc > -22.5) & (angle_p_fc < 22.5):
-            looking.append(True)
-
-            # Find the emotions of the person
-            in_frame = cv2.resize(head_pose, (video_cap.nchw_md[3], video_cap.nchw_md[2]))
-            in_frame = in_frame.transpose((2, 0, 1))
-            in_frame = in_frame.reshape((video_cap.nchw_md[0], video_cap.nchw_md[1],
-                                         video_cap.nchw_md[2], video_cap.nchw_md[3]))
-            video_cap.infer_network_md.exec_net(0, in_frame)
-            video_cap.infer_network_md.wait(0)
-            res = video_cap.infer_network_md.get_output(0)
-            emotions = np.argmax(res)
-            sentiment.append(SENTIMENT_LABEL[emotions])
+            video_cap.infer_network_hp.exec_net(video_cap.next_req, in_frame)
         else:
-            looking.append(False)
-            sentiment.append(-1)
+            head_pose = video_cap.frame[ymin:ymax, xmin:xmax]
+            in_frame = cv2.resize(head_pose, (video_cap.nchw_hp[3], video_cap.nchw_hp[2]))
+            in_frame = in_frame.transpose((2, 0, 1))
+            in_frame = in_frame.reshape((video_cap.nchw_hp[0], video_cap.nchw_hp[1],
+                                     video_cap.nchw_hp[2], video_cap.nchw_hp[3]))
 
+            video_cap.infer_network_hp.exec_net(video_cap.curr_req, in_frame)
+ 
+        if video_cap.infer_network_hp.wait(video_cap.curr_req) == 0:
+
+            # Parse head pose detection results
+            angle_p_fc = video_cap.infer_network_hp.get_output(video_cap.curr_req, "angle_p_fc")
+            angle_y_fc = video_cap.infer_network_hp.get_output(video_cap.curr_req, "angle_y_fc")
+
+            # Check if the person is looking at the camera
+            if (angle_y_fc > -22.5) & (angle_y_fc < 22.5) & (angle_p_fc > -22.5) & (angle_p_fc < 22.5):
+                looking.append(True)
+
+                # Find the emotions of the person
+                in_frame = cv2.resize(head_pose, (video_cap.nchw_md[3], video_cap.nchw_md[2]))
+                in_frame = in_frame.transpose((2, 0, 1))
+                in_frame = in_frame.reshape((video_cap.nchw_md[0], video_cap.nchw_md[1],
+                                             video_cap.nchw_md[2], video_cap.nchw_md[3]))
+                video_cap.infer_network_md.exec_net(0, in_frame)
+                video_cap.infer_network_md.wait(0)
+                res = video_cap.infer_network_md.get_output(0)
+                emotions = np.argmax(res)
+                sentiment.append(SENTIMENT_LABEL[emotions])
+            else:
+                looking.append(False)
+                sentiment.append(-1)
+
+        if is_async_mode:
+            video_cap.curr_req, video_cap.next_req = video_cap.next_req, video_cap.curr_req
+            video_cap.frame = video_cap.next_frame
     update_centroid(frame_centroids, looking, sentiment, video_cap.vc.get(cv2.CAP_PROP_FPS))
     for idx, centroid in enumerate(centroids):
         cv2.rectangle(video_cap.frame, (centroid.point.x, centroid.point.y),
@@ -596,7 +627,7 @@ def heatmap_generation(video_cap):
     max_value = 2
     threshold_frame = cv2.threshold(fgbgmask, thresh, max_value, cv2.THRESH_BINARY)[1]
 
-    # Add thresholded image to the accumulated image
+    # Add threshold image to the accumulated image
     video_cap.accumulated_frame = cv2.add(threshold_frame, video_cap.accumulated_frame)
     colormap_frame = cv2.applyColorMap(video_cap.accumulated_frame, cv2.COLORMAP_HOT)
     video_cap.frame = cv2.addWeighted(video_cap.frame, 0.6, colormap_frame, 0.4, 0)
@@ -689,13 +720,15 @@ def retail_analytics():
     global centroids
     global tracked_person
     global db_client
+    global is_async_mode, cur_request_id, next_request_id
 
+    objdetect = []
     log.basicConfig(format="[ %(levelname)s ] %(message)s", level=log.INFO, stream=sys.stdout)
     logger = log.getLogger()
 
     video_caps = parse_conf_file()
     assert len(video_caps) != 0, "No input source given in Configuration file"
-
+    flag = os.environ['FLAG'] if 'FLAG' in os.environ.keys() else "async"
     load_models(video_caps)
     labels = get_used_labels(video_caps)
     create_database()
@@ -704,13 +737,33 @@ def retail_analytics():
     no_more_data = [False] * len(video_caps)
     frames = [None] * len(video_caps)
     start_time = time.time()
+    if flag == "async":
+        is_async_mode = True
+        print('Application running in async mode')
+    else:
+        is_async_mode = False
+        print('Application running in sync mode')
+    cur_request_id_tr = 0
+    next_request_id_tr = 1
+    cur_request_id = 0
+    next_request_id = 1
+    cur_request_id_sf = 0
+    next_request_id_sf = 1
+    cur_request_id_sh = 0
+    next_request_id_sh = 1
+    input_blob = ["data", "im_info"]
+    det_time = 0
+    cur_request_id = 0
 
     # Main loop for object detection in multiple video streams
     while True:
         for idx, video_cap in enumerate(video_caps):
             vfps = int(round(video_cap.vc.get(cv2.CAP_PROP_FPS)))
             for i in range(0, int(round(vfps / min_fps))):
-                ret, video_cap.frame = video_cap.vc.read()
+                if is_async_mode:
+                    ret, video_cap.next_frame = video_cap.vc.read()
+                else:
+                    ret, video_cap.frame = video_cap.vc.read()
 
                 # If no new frame or error in reading the frame, exit the loop
                 if not ret:
@@ -720,45 +773,78 @@ def retail_analytics():
                 if video_cap.type == 'traffic' or video_cap.type == 'shelf':
                     video_cap.current_count = [0] * len(video_cap.labels)
                     video_cap.changed_count = [False] * len(video_cap.labels)
-
-                # Input frame is resized to infer resolution
-                in_frame = cv2.resize(video_cap.frame, (video_cap.nchw[3], video_cap.nchw[2]))
-
-                # Convert image to format expected by inference engine
-                in_frame = in_frame.transpose((2, 0, 1))
-                in_frame = in_frame.reshape(
-                    (video_cap.nchw[0], video_cap.nchw[1], video_cap.nchw[2], video_cap.nchw[3]))
-                video_cap.infer_network.exec_net(0, in_frame)
-                video_cap.infer_network.wait(0)
-
-                # Pass the frame to the inference engine and get the results
-                res = video_cap.infer_network.get_output(0)
-
-                # Process the result obtained from the inference engine
-                object_det = object_detection(video_cap, res)
-
-                # If the feed type is "traffic" or "shelf", check the current and total count of the object
-                if video_cap.type == 'traffic' or video_cap.type == 'shelf':
-                    process_output(video_cap)
-                    # If feed type is "traffic", generate the heatmap
+                inf_start = time.time()
+                if is_async_mode:
+                    in_frame = cv2.resize(video_cap.next_frame, (video_cap.nchw[3], video_cap.nchw[2]))
+                    in_frame = in_frame.transpose((2, 0, 1))
+                    in_frame = in_frame.reshape((video_cap.nchw[0], video_cap.nchw[1], video_cap.nchw[2], video_cap.nchw[3]))
                     if video_cap.type == 'traffic':
-                        heatmap_generation(video_cap)
-                    # Send the data to InfluxDB
-                    if time.time() >= video_cap.utime + 1:
-                        update_info_object(labels, video_cap)
-                        video_cap.utime = time.time()
-
+                        video_cap.infer_network.exec_net(next_request_id_tr, in_frame, input_blob, video_cap.vc.get(3), video_cap.vc.get(4))
+                        cur_request_id = cur_request_id_tr
+                    elif video_cap.type == 'shelf':
+                        video_cap.infer_network.exec_net(next_request_id_sf, in_frame)
+                        cur_request_id = cur_request_id_sf
+                    else:
+                        video_cap.infer_network.exec_net(next_request_id_sh, in_frame)
+                        cur_request_id = cur_request_id_sh
+                    video_cap.frame = video_cap.next_frame
                 else:
-                    # Detect head pose and emotions of the faces detected
-                    detect_head_pose_and_emotions(video_cap, object_det)
-                    # Send the data to InfluxDB
-                    if time.time() >= video_cap.utime + 1:
-                        update_info_shopper(video_cap)
-                        video_cap.utime = time.time()
+                    in_frame = cv2.resize(video_cap.frame, (video_cap.nchw[3], video_cap.nchw[2]))
+                    in_frame = in_frame.transpose((2, 0, 1))
+                    in_frame = in_frame.reshape((video_cap.nchw[0], video_cap.nchw[1], video_cap.nchw[2], video_cap.nchw[3]))
+                    if video_cap.type == 'traffic':
+                        video_cap.infer_network.exec_net(cur_request_id_tr, in_frame, input_blob, video_cap.vc.get(3), video_cap.vc.get(4))
+                    elif video_cap.type == 'shelf':
+                        video_cap.infer_network.exec_net(cur_request_id_sf, in_frame)
+                    else:
+                        video_cap.infer_network.exec_net(cur_request_id_sh, in_frame)
+                if video_cap.infer_network.wait(cur_request_id) == 0:
+                    inf_end = time.time()
+                    det_time = inf_end - inf_start
+
+                    # Pass the frame to the inference engine and get the results
+                    res = video_cap.infer_network.get_output(cur_request_id)
+
+                    # Process the result obtained from the inference engine
+                    object_det = object_detection(video_cap, res)
+
+                    # If the feed type is "traffic" or "shelf", check the current and total count of the object
+                    if video_cap.type == 'traffic' or video_cap.type == 'shelf':
+                        process_output(video_cap)
+
+                        # If feed type is "traffic", generate the heatmap
+                        if video_cap.type == 'traffic':
+                            heatmap_generation(video_cap)
+
+                        # Send the data to InfluxDB
+                        if time.time() >= video_cap.utime + 1:
+                            update_info_object(labels, video_cap)
+                            video_cap.utime = time.time()
+
+                    else:
+                        # Detect head pose and emotions of the faces detected
+                        detect_head_pose_and_emotions(video_cap, object_det, cur_request_id_sh, next_request_id_sh)
+
+                        # Send the data to InfluxDB
+                        if time.time() >= video_cap.utime + 1:
+                            update_info_shopper(video_cap)
+                            video_cap.utime = time.time()
+
+                if is_async_mode:
+                    if video_cap.type == 'traffic':
+                        cur_request_id_tr, next_request_id_tr = next_request_id_tr, cur_request_id_tr
+                    elif video_cap.type == 'shopper':
+                        cur_request_id_sh, next_request_id_sh = next_request_id_sh, cur_request_id_sh
+                    else:
+                        cur_request_id_sf, next_request_id_sf = next_request_id_sf, cur_request_id_sf                
 
                 fps_time = time.time() - start_time
                 fps_message = "FPS: {:.3f} fps".format(1 / fps_time)
                 start_time = time.time()
+                inf_time_message = "Inference time: N\A for async mode" if is_async_mode else\
+                "Inference time: {:.3f} ms".format(det_time * 1000)
+                cv2.putText(video_cap.frame, inf_time_message, (10, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5,
+                            (200, 10, 10), 1)
                 cv2.putText(video_cap.frame, fps_message, (10, int(video_cap.input_height) - 10),
                             cv2.FONT_HERSHEY_COMPLEX, 0.5, (200, 10, 10), 1)
 
@@ -768,7 +854,7 @@ def retail_analytics():
 
             # Print the results on the frame and stream it
             message = "Feed Type: {}".format(video_cap.type)
-            cv2.putText(video_cap.frame, message, (10, 25),
+            cv2.putText(video_cap.frame, message, (10, 30),
                         cv2.FONT_HERSHEY_COMPLEX, 0.5, (200, 10, 10), 1)
 
             if video_cap.type == 'traffic' or video_cap.type == 'shelf':
@@ -809,18 +895,26 @@ def retail_analytics():
 
 
 # Create object for Flask class
-app = Flask(__name__)
+app = Flask(__name__, template_folder=template_dir)
 
 
 # Trigger the index() function on opening "0.0.0.0:5000/" URL
 @app.route('/')
 def index():
+    """
+    Trigger the index() function on opening "0.0.0.0:5000/" URL
+    :return: html file
+    """
     return render_template('index.html')
 
 
 # Trigger the video_feed() function on opening "0.0.0.0:5000/video_feed" URL
 @app.route('/video_feed')
 def video_feed():
+    """
+    Trigger the video_feed() function on opening "0.0.0.0:5000/video_feed" URL
+    :return:
+    """
     return Response(retail_analytics(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 

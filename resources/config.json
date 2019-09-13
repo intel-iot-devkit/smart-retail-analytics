@@ -1,0 +1,20 @@
+{
+
+    "inputs": [
+
+	    {
+            "video": "../resources/head-pose-face-detection-female.mp4",
+            "type": "shopper"
+        },
+        {
+            "video": "../resources/bottle-detection.mp4",
+            "label": "bottle",
+            "type": "shelf"
+        },
+        {
+            "video": "../resources/face-demographics-walking.mp4",
+            "type": "traffic"
+        }
+    ]
+
+}
