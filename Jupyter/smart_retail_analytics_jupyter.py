@@ -53,7 +53,7 @@ not_interested = 0
 db_client = None
 myriad_plugin = None
 Point = namedtuple("Point", "x,y")
-accepted_devices = ['CPU', 'GPU', 'MYRIAD', 'HETERO:FPGA,CPU', 'HETERO:HDDL,CPU']
+accepted_devices = ['CPU', 'GPU', 'MYRIAD', 'HETERO:FPGA,CPU', 'HDDL']
 is_async_mode = True
 template_dir = os.path.abspath('../templates')
 
@@ -920,3 +920,4 @@ def video_feed():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
+

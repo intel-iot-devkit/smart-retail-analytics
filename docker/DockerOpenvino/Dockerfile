@@ -2,9 +2,11 @@ FROM ubuntu:16.04
 
 ADD . /app
 WORKDIR /app
+ENV http_proxy 'http://proxy-iind.intel.com:911'
+ENV https_proxy 'http://proxy-iind.intel.com:911'
 
 ARG INSTALL_DIR=/opt/intel/openvino
-ARG OPENVINO=l_openvino_toolkit_p_2019.2.242.tgz
+ARG OPENVINO=l_openvino_toolkit_p_2019.3.334.tgz
 ARG COUNTRY=1
 ARG IMAGE=mssi
 ARG VERSION=1.0
@@ -28,7 +30,7 @@ RUN apt-get install -y --no-install-recommends \
 
 #Downloading Openvino toolkit
 RUN cd /app && \
-    wget http://registrationcenter-download.intel.com/akdlm/irc_nas/15693/$OPENVINO
+    wget -O $OPENVINO http://registrationcenter-download.intel.com/akdlm/irc_nas/15944/$OPENVINO
 
 RUN tar -xvzf $OPENVINO
 
@@ -59,8 +61,8 @@ RUN cd $INSTALL_DIR/deployment_tools/tools/model_downloader && \
     ./downloader.py --name mobilenet-ssd
 
 RUN cd $INSTALL_DIR/deployment_tools/model_optimizer/ && \
-    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o /app/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127] && \
-    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o /app/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
+    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/open_model_zoo/tools/downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o /app/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127] && \
+    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/open_model_zoo/tools/downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o /app/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
 
 RUN cd /app/resources && \
     wget -O face-demographics-walking.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/face-demographics-walking.mp4 && \

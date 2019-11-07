@@ -23,7 +23,7 @@ This smart retail analytics application monitors people activity, counts total n
    uname -a
    ```
 * OpenCL™ Runtime Package
-* Intel® Distribution of OpenVINO™ toolkit 2019 R2 release 
+* Intel® Distribution of OpenVINO™ toolkit 2019 R3 release
 * Grafana* v5.3.2 
 * InfluxDB* v1.6.2
 * Jupyter* Notebook v5.7.0
@@ -72,7 +72,7 @@ Grafana is an open-source, general purpose dashboard and graph composer, which r
 The AJAX Panel is a general way to load external content into a grafana dashboard.
 
 ### Which model to use
-The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2019_R2/_intel_models_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2019_R2/_intel_models_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2019_R2/_intel_models_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). . For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2019_R2/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
+The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2019_R3/_models_intel_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2019_R3/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
 
 For video feed type __shelf__, mobilenet-ssd model is used that can be downloaded using `downloader` script present in Intel® Distribution of OpenVINO™ toolkit.
 The `mobilenet-ssd` model is a Single-Shot multibox Detection (SSD) network intended to perform object detection. This model is implemented using the Caffe\* framework. For details about this model, check out the [repository](https://github.com/chuanqi305/MobileNet-SSD).
@@ -83,21 +83,21 @@ To install the dependencies and to download the models and optimize **mobilenet-
    ./setup.sh
    ```
 * These models will be downloaded in the locations given below: 
-   * **face-detection**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/
-   * **head-pose-estimation**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/
-   * **emotions-recognition**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/
-   * **person-detection-retail**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_detection/pedestrian/hypernet-rfcn/0026/dldt/
+   * **face-detection**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/
+   * **head-pose-estimation**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/
+   * **emotions-recognition**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/
+   * **person-detection-retail**: /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/
 
 <br>
 
 ### The Labels file
-The shelf feed type in the application requires a _labels_ file associated with the model being used for detection. All detection models work with integer labels and not string labels (e.g. for the ssd300 and mobilenet-ssd models, the number 15 represents the class "person"), that is why each model must have a _labels_ file, which associates an integer (the label the algorithm detects) with a string (denoting the human-readable label).   
+The shelf feed type in the application requires a _labels_ file associated with the model being used for detection. All detection models work with integer labels and not string labels (e.g. for the ssd300 and mobilenet-ssd models, the number 15 represents the class "person"), that is why each model must have a _labels_ file, which associates an integer (the label the algorithm detects) with a string (denoting the human-readable label).
 The _labels_ file is a text file containing all the classes/labels that the model can recognize, in the order that it was trained to recognize them (one class per line).<br> 
 For mobilenet-ssd model, _labels.txt_ file is provided in the _resources_ directory.
 
 ### The Config file
 The **resources/config.json** contains the videos along with the video feed type. 
-The _config.json_ file is of the form name/value pair, `"video": <path/to/video>` and `"type": <video-feed-type>`    
+The _config.json_ file is of the form name/value pair, `"video": <path/to/video>` and `"type": <video-feed-type>`
 For example:
 ```
 {
@@ -175,7 +175,7 @@ For example, if the output of above command is `/dev/video0`, then config.json w
 You must configure the environment to use the Intel® Distribution of OpenVINO™ toolkit one time per session by running the following command:
 ```
 source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
-```    
+```
 __Note__: This command needs to be executed only once in the terminal where the application will be executed. If the terminal is closed, the command needs to be executed again.
     
 ## Run the application on Jupyter*
@@ -187,24 +187,35 @@ __Note__: This command needs to be executed only once in the terminal where the 
     
     jupyter notebook
 	```
-	
-    <!--
-    **Note:**<br>
-    Before running the application on the FPGA, program the AOCX (bitstream) file. Use the setup_env.sh script from [fpga_support_files.tgz](http://registrationcenter-download.intel.com/akdlm/irc_nas/12954/fpga_support_files.tgz) to set the environment variables.<br>
-    For example:
+	**Note:** Before running the application on the FPGA, set the environment variables and  program the AOCX (bitstream) file.<br>
+
+    Set the Board Environment Variable to the proper directory:
 
     ```
-    source /home/<user>/Downloads/fpga_support_files/setup_env.sh
+    export AOCL_BOARD_PACKAGE_ROOT=/opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/BSP/a10_1150_sg<#>
+    ```
+    **NOTE**: If you do not know which version of the board you have, please refer to the product label on the fan cover side or by the product SKU: Mustang-F100-A10-R10 => SG1; Mustang-F100-A10E-R10 => SG2 <br>
+
+    Set the Board Environment Variable to the proper directory:
+    ```
+    export QUARTUS_ROOTDIR=/home/<user>/intelFPGA/18.1/qprogrammer
+    ```
+    Set the remaining environment variables:
+    ```
+    export PATH=$PATH:/opt/altera/aocl-pro-rte/aclrte-linux64/bin:/opt/altera/aocl-pro-rte/aclrte-linux64/host/linux64/bin:/home/<user>/intelFPGA/18.1/qprogrammer/bin
+    export INTELFPGAOCLSDKROOT=/opt/altera/aocl-pro-rte/aclrte-linux64
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$AOCL_BOARD_PACKAGE_ROOT/linux64/lib
+    export CL_CONTEXT_COMPILER_MODE_INTELFPGA=3
+    source /opt/altera/aocl-pro-rte/aclrte-linux64/init_opencl.sh
+    ```
+    **NOTE**: It is recommended to create your own script for your system to aid in setting up these environment variables. It will be run each time you need a new terminal or restart your system.
+
+    The bitstreams for HDDL-F can be found under the `/opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/` directory.<br><br>To program the bitstream use the below command:<br>
+    ```
+    aocl program acl0 /opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/2019R3_PV_PL1_FP16_MobileNet_Clamp.aocx
     ```
 
-    The bitstreams for HDDL-F can be found under the `/opt/intel/openvino/bitstreams/a10_vision_design_bitstreams` folder.<br> To program the bitstream use the below command:<br>
-    ```
-    aocl program acl0 /opt/intel/openvino/bitstreams/a10_vision_design_bitstreams/2019R1_PL1_FP11_MobileNet_Clamp.aocx
-    ```
-
-    For more information on programming the bitstreams, please refer to https://software.intel.com/en-us/articles/OpenVINO-Install-Linux-FPGA#inpage-nav-11
-    <br>
-    -->
+    For more information on programming the bitstreams, please refer the [link](https://software.intel.com/en-us/articles/OpenVINO-Install-Linux-FPGA#inpage-nav-11).
 
    ![Jupyter Notebook](../docs/images/jupyter.png)
 
@@ -218,10 +229,10 @@ __Note__: This command needs to be executed only once in the terminal where the 
 3. Export the below environment variables in the first cell of Jupyter and press **Shift+Enter**.<br>
    
    ```
-   %env FACE_MODEL= /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/FP32/face-detection-adas-0001.xml
-   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/FP32/head-pose-estimation-adas-0001.xml
-   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/FP32/emotions-recognition-retail-0003.xml
-   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_detection/pedestrian/hypernet-rfcn/0026/dldt/FP32/person-detection-retail-0002.xml
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml
+   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP32/mobilenet-ssd.xml
    %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt
@@ -249,10 +260,10 @@ For example :<br>
 To run Face Detection model with FP16 and Emotions Recognition model with FP32 on GPU, Head Pose Estimation model on MYRIAD, Person Detection Model and mobilenet-ssd on CPU, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list to run the application.
 
    ```
-   %env FACE_MODEL= /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/FP16/face-detection-adas-0001.xml
-   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/FP16/head-pose-estimation-adas-0001.xml
-   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/FP32/emotions-recognition-retail-0003.xml
-   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_detection/pedestrian/hypernet-rfcn/0026/dldt/FP32/person-detection-retail-0002.xml
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml
+   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP32/mobilenet-ssd.xml
    %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt
@@ -288,10 +299,10 @@ To run the application on Intel® Movidius™ VPU, configure the hddldaemon by f
     ```
 To run the application on the Intel® Movidius™ VPU, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list.<br>
    ```
-   %env FACE_MODEL= /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/FP16/face-detection-adas-0001.xml
-   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/FP16/head-pose-estimation-adas-0001.xml
-   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/FP16/emotions-recognition-retail-0003.xml
-   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_detection/pedestrian/hypernet-rfcn/0026/dldt/FP16/person-detection-retail-0002.xml
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml
+   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
    %env LABEL_FILE=../resources/labels.txt
    %env FLAG=async
@@ -302,31 +313,33 @@ To run the application on the Intel® Movidius™ VPU, export the environmental 
    %env PERSON_DEVICE=HDDL
    ```
    **CPU_EXTENSION** environment variable is not required.
-<!--
-**Note:**<br>
-To run the application on **FPGA**, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list.<br>
-   ```
-   %env FACE_MODEL= /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/FP16/face-detection-adas-0001.xml
-   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/FP16/head-pose-estimation-adas-0001.xml
-   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/FP16/emotions-recognition-retail-0003.xml
-   %env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
-   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
-   %env LABEL_FILE=../resources/labels.txt
-   %env FLAG=async
-   %env FACE_DEVICE=HETERO:FPGA,CPU
-   %env POSE_DEVICE=HETERO:FPGA,CPU
-   %env MOOD_DEVICE=HETERO:FPGA,CPU
-   %env OBJ_DEVICE=HETERO:FPGA,CPU
-   %env PERSON_DEVICE=HETERO:FPGA,CPU
-   ```
--->
 
+### Run on the Intel® Arria® 10 FPGA:
+To run the application on the Intel® Arria® 10 FPGA, export the below environmental variables:<br>
+```
+%env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml
+%env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml
+%env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml
+%env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml
+%env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
+%env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
+%env LABEL_FILE=../resources/labels.txt
+%env FLAG=async
+%env FACE_DEVICE=HETERO:FPGA,CPU
+%env POSE_DEVICE=HETERO:FPGA,CPU
+%env MOOD_DEVICE=HETERO:FPGA,CPU
+%env OBJ_DEVICE=HETERO:FPGA,CPU
+%env PERSON_DEVICE=HETERO:FPGA,CPU
+```
+
+### Run with multiple devices
 To run the application with multiple devices use **MULTI:device1,device2**, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list.<br>
 For example: `MULTI:CPU,GPU,MYRIAD`
    ```
-   %env FACE_MODEL= /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_detection/face/pruned_mobilenet_reduced_ssd_shared_weights/dldt/FP16/face-detection-adas-0001.xml
-   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Transportation/object_attributes/headpose/vanilla_cnn/dldt/FP16/head-pose-estimation-adas-0001.xml
-   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/Retail/object_attributes/emotions_recognition/0003/dldt/FP16/emotions-recognition-retail-0003.xml
+   %env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml
+   %env POSE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml
+   %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml
+   %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
    %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt

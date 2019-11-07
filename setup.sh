@@ -28,7 +28,7 @@ source /etc/lsb-release
 echo "deb https://repos.influxdata.com/${DISTRIB_ID,,} ${DISTRIB_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
 sudo apt-get install influxdb
 sudo service influxdb start
-wget https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_5.3.2_amd64.deb
+wget -O grafana_5.3.2_amd64.deb https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_5.3.2_amd64.deb
 sudo apt-get install -y adduser libfontconfig
 sudo dpkg -i grafana_5.3.2_amd64.deb
 sudo /bin/systemctl start grafana-server
@@ -54,5 +54,5 @@ sudo ./downloader.py --name mobilenet-ssd
 
 #Optimize the model
 cd /opt/intel/openvino/deployment_tools/model_optimizer/
-./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o $BASE_DIR/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127]
-./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/object_detection/common/mobilenet-ssd/caffe/mobilenet-ssd.caffemodel  -o $BASE_DIR/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
+./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o $BASE_DIR/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127]
+./mo_caffe.py --input_model /opt/intel/openvino/deployment_tools/tools/model_downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o $BASE_DIR/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]

@@ -59,9 +59,9 @@ class Network:
         :param plugin: Plugin for specified device
         :return:  Shape of input layer
         """
+
         model_xml = model
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
-
         # Plugin initialization for specified device
         # and load extensions library if specified
         if not plugin:
@@ -69,11 +69,11 @@ class Network:
             self.plugin = IECore()
         else:
             self.plugin = plugin
+
         if cpu_extension and 'CPU' in device:
             self.plugin.add_extension(cpu_extension, "CPU")
-        if device == "HDDL":
-            self.plugin.set_config(tag)
-
+        if not device == 'HDDL':
+           tag = {}
         # Read IR
         log.info("Reading IR...")
         self.net = IENetwork(model=model_xml, weights=model_bin)
@@ -95,9 +95,9 @@ class Network:
 
         if num_requests == 0:
             # Loads network read from IR to the plugin
-            self.net_plugin = self.plugin.load_network(network=self.net, device_name=device)
+            self.net_plugin = self.plugin.load_network(network=self.net, device_name=device, config=tag)
         else:
-            self.net_plugin = self.plugin.load_network(network=self.net, num_requests=num_requests, device_name=device)
+            self.net_plugin = self.plugin.load_network(network=self.net, num_requests=num_requests, device_name=device, config=tag)
 
         self.input_blob = next(iter(self.net.inputs))
         if len(self.net.inputs.keys()) == 2:
@@ -163,7 +163,6 @@ class Network:
         if output:
             res = self.net_plugin.requests[request_id].outputs[output]
         else:
-
             res = self.net_plugin.requests[request_id].outputs[self.out_blob]
         return res
 

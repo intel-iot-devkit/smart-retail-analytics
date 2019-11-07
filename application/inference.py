@@ -72,8 +72,8 @@ class Network:
 
         if cpu_extension and 'CPU' in device:
             self.plugin.add_extension(cpu_extension, "CPU")
-        if device == "HDDL":
-            self.plugin.set_config(tag)
+        if not device == 'HDDL':
+           tag = {}
         # Read IR
         log.info("Reading IR...")
         self.net = IENetwork(model=model_xml, weights=model_bin)
@@ -95,9 +95,9 @@ class Network:
 
         if num_requests == 0:
             # Loads network read from IR to the plugin
-            self.net_plugin = self.plugin.load_network(network=self.net, device_name=device)
+            self.net_plugin = self.plugin.load_network(network=self.net, device_name=device, config=tag)
         else:
-            self.net_plugin = self.plugin.load_network(network=self.net, num_requests=num_requests, device_name=device)
+            self.net_plugin = self.plugin.load_network(network=self.net, num_requests=num_requests, device_name=device, config=tag)
 
         self.input_blob = next(iter(self.net.inputs))
         if len(self.net.inputs.keys()) == 2:
