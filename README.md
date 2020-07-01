@@ -49,7 +49,7 @@ The application is capable of processing multiple video input feeds, each having
 Steps to clone the reference implementation: (smart-retail-analytics)
 
     sudo apt-get update && sudo apt-get install git
-    git clone https://gitlab.devtools.intel.com/reference-implementations/smart-retail-analytics-python.git
+    git clone https://github.com/intel-iot-devkit/smart-retail-analytics.git
 
 ### Install the Intel® Distribution of OpenVINO™ toolkit
 Refer to https://software.intel.com/en-us/articles/OpenVINO-Install-Linux on how to install and setup the Intel® Distribution of OpenVINO™ toolkit.
