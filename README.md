@@ -2,7 +2,7 @@
 
 | Details           |              |
 |-----------------------|---------------|
-| Target OS:            |  Ubuntu\* 16.04 LTS   |
+| Target OS:            |  Ubuntu\* 18.04 LTS   |
 | Programming Language: |  Python* 3.5 |
 | Time to Complete:    |  50-70min     |
 
@@ -16,13 +16,13 @@ This smart retail analytics application monitors people activity, counts total n
 * 6th to 8th Generation Intel® Core™ processors with Iris® Pro graphics or Intel® HD Graphics
 
 ### Software
-* [Ubuntu\* 16.04 LTS](http://releases.ubuntu.com/16.04/)<br>
+* [Ubuntu\* 18.04 LTS](http://releases.ubuntu.com/18.04/)<br>
    *Note*: We recommend using a 4.14+ Linux* kernel with this software. Run the following command to determine your kernel version:
    ```
    uname -a
    ```
 * OpenCL™ Runtime Package
-* Intel® Distribution of OpenVINO™ toolkit 2019 R3 release
+* Intel® Distribution of OpenVINO™ toolkit 2020 R3 release
 * Grafana* v5.3.2 
 * InfluxDB* v1.6.2
 
@@ -49,7 +49,7 @@ The application is capable of processing multiple video input feeds, each having
 Steps to clone the reference implementation: (smart-retail-analytics)
 
     sudo apt-get update && sudo apt-get install git
-    git clone https://github.com/intel-iot-devkit/smart-retail-analytics.git
+    git clone https://gitlab.devtools.intel.com/reference-implementations/smart-retail-analytics-python.git
 
 ### Install the Intel® Distribution of OpenVINO™ toolkit
 Refer to https://software.intel.com/en-us/articles/OpenVINO-Install-Linux on how to install and setup the Intel® Distribution of OpenVINO™ toolkit.
@@ -70,7 +70,7 @@ Grafana is an open-source, general purpose dashboard and graph composer, which r
 The AJAX Panel is a general way to load external content into a grafana dashboard.
 
 ### Which model to use
-The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2019_R3/_models_intel_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2019_R3/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
+The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2020.3/_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2020.3/_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2020.3/_models_intel_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2020.3/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
 
 For video feed type __shelf__, mobilenet-ssd model is used that can be downloaded using `downloader` script present in Intel® Distribution of OpenVINO™ toolkit.
 The `mobilenet-ssd` model is a Single-Shot multibox Detection (SSD) network intended to perform object detection. This model is implemented using the Caffe\* framework. For details about this model, check out the [repository](https://github.com/chuanqi305/MobileNet-SSD).
@@ -172,7 +172,7 @@ For example, if the output of above command is `/dev/video0`, then config.json w
 ## Setup the environment
 You must configure the environment to use the Intel® Distribution of OpenVINO™ toolkit one time per session by running the following command:
 ```
-source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
+source /opt/intel/openvino/bin/setupvars.sh
 ```
 __Note__: This command needs to be executed only once in the terminal where the application will be executed. If the terminal is closed, the command needs to be executed again.
     
@@ -184,10 +184,15 @@ Change the current directory to the git-cloned application code location on your
 cd <path_to_the_smart-retail-analytics-python_directory>/application
 ```
 
-To run the application with the required models:
+A user can specify a target device to run on by using the device command-line argument `-d_<model-acronym> (Ex. d_fm, d_pm, d_mm, d_om or d_pd)` followed by one of the values `CPU`, `GPU`,`MYRIAD` or `HDDL`.<br>
+
+Not specifying any target device means by default all the models will run on CPU, although this can also be explicitly specified by the device command-line argument
+
+To run the application with the required models :
 ```
-python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb ../resources/labels.txt -l /opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
+python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb ../resources/labels.txt 
 ```
+
 Once the command is executed in the terminal, configure the Grafana dashboard using the instructions given in the next section to see the output.<br>
 To run the application on sync mode, use **-f sync** as command line argument. By default, the application runs on async mode.
 
@@ -200,13 +205,15 @@ The application can use different hardware accelerator for different models. The
 * `-d_om <device>`: Target device for mobilenet-ssd network (CPU, GPU, MYRIAD, HETERO:FPGA,CPU or HDDL).
 * `-d_pd <device>`: Target device for Person Detection Retail network (CPU, GPU, MYRIAD, HETERO:FPGA,CPU or HDDL).
 
+
 __For example:__<br>
 To run Face Detection model with FP16 and Emotions Recognition model with FP32 on GPU, Head Pose Estimation model on MYRIAD, mobilenet-ssd and person-detection model on CPU, use the below command:
 ```
-python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb ../resources/labels.txt -l /opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so -d_fm GPU -d_pm MYRIAD -d_mm GPU -d_pd CPU -d_om CPU
+python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb ../resources/labels.txt -d_fm GPU -d_pm MYRIAD -d_mm GPU -d_pd CPU -d_om CPU
 ```
-To run with multiple devices use -d MULTI:device1,device2. For example: `-d MULTI:CPU,GPU,MYRIAD`<br>
-By default, the application runs on CPU.<br>
+
+To run with multiple devices use MULTI:device1,device2. For example: `-d_fm MULTI:CPU,GPU,MYRIAD`<br>
+
 **Note:**<br>
 * The Intel® Neural Compute Stick and Intel® Movidius™ VPU can only run FP16 models. The model that is passed to the application, must be of data type FP16.<br>
 <!--2. To run the application on FPGA, follow the steps mentioned under **Run on the FPGA** section.<br>-->
@@ -236,47 +243,9 @@ To run the application on the Intel® Movidius™ VPU, use the `-d HDDL` command
 ```
 python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml -om ../resources/FP16/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml -lb ../resources/labels.txt -d_pd HDDL -d_fm HDDL -d_pm HDDL -d_mm HDDL -d_om HDDL
 ```
-
-#### Run on the Intel® Arria® 10 FPGA
-
-Before running the application on the FPGA, set the environment variables and  program the AOCX (bitstream) file.<br>
-
-Set the Board Environment Variable to the proper directory:
-
-```
-export AOCL_BOARD_PACKAGE_ROOT=/opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/BSP/a10_1150_sg<#>
-```
-**NOTE**: If you do not know which version of the board you have, please refer to the product label on the fan cover side or by the product SKU: Mustang-F100-A10-R10 => SG1; Mustang-F100-A10E-R10 => SG2 <br>
-
-Set the Board Environment Variable to the proper directory:
-```
-export QUARTUS_ROOTDIR=/home/<user>/intelFPGA/18.1/qprogrammer
-```
-Set the remaining environment variables:
-```
-export PATH=$PATH:/opt/altera/aocl-pro-rte/aclrte-linux64/bin:/opt/altera/aocl-pro-rte/aclrte-linux64/host/linux64/bin:/home/<user>/intelFPGA/18.1/qprogrammer/bin
-export INTELFPGAOCLSDKROOT=/opt/altera/aocl-pro-rte/aclrte-linux64
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$AOCL_BOARD_PACKAGE_ROOT/linux64/lib
-export CL_CONTEXT_COMPILER_MODE_INTELFPGA=3
-source /opt/altera/aocl-pro-rte/aclrte-linux64/init_opencl.sh
-```
-**NOTE**: It is recommended to create your own script for your system to aid in setting up these environment variables. It will be run each time you need a new terminal or restart your system.
-
-The bitstreams for HDDL-F can be found under the `/opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/` directory.<br><br>To program the bitstream use the below command:<br>
-```
-aocl program acl0 /opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/2019R3_PV_PL1_FP16_MobileNet_Clamp.aocx
-```
-
-For more information on programming the bitstreams, please refer the [link](https://software.intel.com/en-us/articles/OpenVINO-Install-Linux-FPGA#inpage-nav-11).
-
-To run the application on the FPGA with floating point precision 16 (FP16), use the `-d HETERO:FPGA,CPU` command-line argument:
-```
-python3 smart_retail_analytics.py -fm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml -pm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml -om ../resources/FP16/mobilenet-ssd.xml -pr /opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml -lb ../resources/labels.txt -l /opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so -d_pd HETERO:FPGA,CPU -d_fm HETERO:FPGA,CPU -d_pm HETERO:FPGA,CPU -d_mm HETERO:FPGA,CPU -d_om HETERO:FPGA,CPU
-```
-
 ### Visualize on Grafana
 
-1. Start the Grafana server:
+1. Open a new tab on the terminal and start the Grafana server using the following command:
 
    ```
    sudo service grafana-server start

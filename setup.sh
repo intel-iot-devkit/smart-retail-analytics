@@ -35,7 +35,7 @@ sudo /bin/systemctl start grafana-server
 sudo grafana-cli plugins install ryantxu-ajax-panel
 sudo apt-get install python3-pip
 sudo pip3 install influxdb numpy flask jupyter
-
+sudo pip3 install networkx
 BASE_DIR=`pwd`
 
 #Download the videos

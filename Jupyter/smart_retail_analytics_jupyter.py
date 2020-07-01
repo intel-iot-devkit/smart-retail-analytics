@@ -896,6 +896,9 @@ def retail_analytics():
 
 # Create object for Flask class
 app = Flask(__name__, template_folder=template_dir)
+app.logger.disabled = True
+log_ = log.getLogger('werkzeug')
+log_.disabled = True
 
 
 # Trigger the index() function on opening "0.0.0.0:5000/" URL

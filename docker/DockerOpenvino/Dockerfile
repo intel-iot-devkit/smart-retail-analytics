@@ -6,7 +6,7 @@ ENV http_proxy 'http://proxy-iind.intel.com:911'
 ENV https_proxy 'http://proxy-iind.intel.com:911'
 
 ARG INSTALL_DIR=/opt/intel/openvino
-ARG OPENVINO=l_openvino_toolkit_p_2019.3.334.tgz
+ARG OPENVINO=l_openvino_toolkit_p_2020.3.194.tgz
 ARG COUNTRY=1
 ARG IMAGE=mssi
 ARG VERSION=1.0
@@ -28,9 +28,12 @@ RUN apt-get install -y --no-install-recommends \
         wget \
         sudo
 
+#Upgrading the pip version
+RUN pip3 install --upgrade pip
+
 #Downloading Openvino toolkit
 RUN cd /app && \
-    wget -O $OPENVINO http://registrationcenter-download.intel.com/akdlm/irc_nas/15944/$OPENVINO
+    wget -O $OPENVINO http://registrationcenter-download.intel.com/akdlm/irc_nas/16670/$OPENVINO
 
 RUN tar -xvzf $OPENVINO
 

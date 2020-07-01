@@ -76,7 +76,7 @@ class Network:
            tag = {}
         # Read IR
         log.info("Reading IR...")
-        self.net = IENetwork(model=model_xml, weights=model_bin)
+        self.net = self.plugin.read_network(model=model_xml, weights=model_bin)
         log.info("Loading IR to the plugin...")
 
         if "CPU" in device:

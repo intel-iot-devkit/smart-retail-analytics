@@ -2,7 +2,7 @@
 
 | Details           |              |
 |-----------------------|---------------|
-| Target OS:            |  Ubuntu\* 16.04 LTS   |
+| Target OS:            |  Ubuntu\* 18.04 LTS   |
 | Programming Language: |  Python* 3.5 |
 | Time to Complete:    |  50-70min     |
 
@@ -17,13 +17,13 @@ This smart retail analytics application monitors people activity, counts total n
 * 6th to 8th Generation Intel® Core™ processors with Iris® Pro graphics or Intel® HD Graphics
 
 ### Software
-* [Ubuntu\* 16.04 LTS](http://releases.ubuntu.com/16.04/)<br>
+* [Ubuntu\* 18.04 LTS](http://releases.ubuntu.com/18.04/)<br>
    *Note*: We recommend using a 4.14+ Linux* kernel with this software. Run the following command to determine your kernel version:
    ```
    uname -a
    ```
 * OpenCL™ Runtime Package
-* Intel® Distribution of OpenVINO™ toolkit 2019 R3 release
+* Intel® Distribution of OpenVINO™ toolkit 2020 R3 release
 * Grafana* v5.3.2 
 * InfluxDB* v1.6.2
 * Jupyter* Notebook v5.7.0
@@ -72,7 +72,7 @@ Grafana is an open-source, general purpose dashboard and graph composer, which r
 The AJAX Panel is a general way to load external content into a grafana dashboard.
 
 ### Which model to use
-The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2019_R3/_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2019_R3/_models_intel_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2019_R3/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
+The application uses  Intel® Pre-Trained models in the feed type `shopper` i.e.[face-detection-adas-0001](https://docs.openvinotoolkit.org/2020.3/_models_intel_face_detection_adas_0001_description_face_detection_adas_0001.html), [head-pose-estimation-adas-0001](https://docs.openvinotoolkit.org/2020.3/_models_intel_head_pose_estimation_adas_0001_description_head_pose_estimation_adas_0001.html), [emotion-recognition-retail-0003](https://docs.openvinotoolkit.org/2020.3/_models_intel_emotions_recognition_retail_0003_description_emotions_recognition_retail_0003.html). For the feed type `traffic`, [person-detection-retail-0002](https://docs.openvinotoolkit.org/2020.3/person-detection-retail-0002.html) is used and these can be downloaded using **model downloader** script.
 
 For video feed type __shelf__, mobilenet-ssd model is used that can be downloaded using `downloader` script present in Intel® Distribution of OpenVINO™ toolkit.
 The `mobilenet-ssd` model is a Single-Shot multibox Detection (SSD) network intended to perform object detection. This model is implemented using the Caffe\* framework. For details about this model, check out the [repository](https://github.com/chuanqi305/MobileNet-SSD).
@@ -174,7 +174,7 @@ For example, if the output of above command is `/dev/video0`, then config.json w
 ## Setup the environment
 You must configure the environment to use the Intel® Distribution of OpenVINO™ toolkit one time per session by running the following command:
 ```
-source /opt/intel/openvino/bin/setupvars.sh -pyver 3.5
+source /opt/intel/openvino/bin/setupvars.sh
 ```
 __Note__: This command needs to be executed only once in the terminal where the application will be executed. If the terminal is closed, the command needs to be executed again.
     
@@ -187,7 +187,7 @@ __Note__: This command needs to be executed only once in the terminal where the 
     
     jupyter notebook
 	```
-	**Note:** Before running the application on the FPGA, set the environment variables and  program the AOCX (bitstream) file.<br>
+	<!--**Note:** Before running the application on the FPGA, set the environment variables and  program the AOCX (bitstream) file.<br>
 
     Set the Board Environment Variable to the proper directory:
 
@@ -215,7 +215,7 @@ __Note__: This command needs to be executed only once in the terminal where the 
     aocl program acl0 /opt/intel/openvino/bitstreams/a10_vision_design_sg<#>_bitstreams/2019R3_PV_PL1_FP16_MobileNet_Clamp.aocx
     ```
 
-    For more information on programming the bitstreams, please refer the [link](https://software.intel.com/en-us/articles/OpenVINO-Install-Linux-FPGA#inpage-nav-11).
+    For more information on programming the bitstreams, please refer the [link](https://software.intel.com/en-us/articles/OpenVINO-Install-Linux-FPGA#inpage-nav-11).-->
 
    ![Jupyter Notebook](../docs/images/jupyter.png)
 
@@ -234,7 +234,6 @@ __Note__: This command needs to be executed only once in the terminal where the 
    %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml
    %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP32/mobilenet-ssd.xml
-   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt
    ```
 
@@ -265,7 +264,6 @@ To run Face Detection model with FP16 and Emotions Recognition model with FP32 o
    %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml
    %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP32/mobilenet-ssd.xml
-   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt
    %env FLAG=async
    %env FACE_DEVICE=GPU
@@ -275,7 +273,7 @@ To run Face Detection model with FP16 and Emotions Recognition model with FP32 o
    %env OBJ_DEVICE=CPU
    ```
 
-   ![Jupyter Notebook](../docs/images/jupyter_code1.png)
+   ![Jupyter Notebook](../docs/images/jupyter_code2.png)
 
 **Note:** The Intel® Neural Compute Stick and Intel® Movidius™ VPU can only run FP16 models. The model that is passed to the application, must be of data type FP16.
 
@@ -312,9 +310,8 @@ To run the application on the Intel® Movidius™ VPU, export the environmental 
    %env OBJ_DEVICE=HDDL
    %env PERSON_DEVICE=HDDL
    ```
-   **CPU_EXTENSION** environment variable is not required.
 
-### Run on the Intel® Arria® 10 FPGA:
+<!--### Run on the Intel® Arria® 10 FPGA:
 To run the application on the Intel® Arria® 10 FPGA, export the below environmental variables:<br>
 ```
 %env FACE_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml
@@ -322,7 +319,6 @@ To run the application on the Intel® Arria® 10 FPGA, export the below environm
 %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml
 %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml
 %env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
-%env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
 %env LABEL_FILE=../resources/labels.txt
 %env FLAG=async
 %env FACE_DEVICE=HETERO:FPGA,CPU
@@ -331,7 +327,7 @@ To run the application on the Intel® Arria® 10 FPGA, export the below environm
 %env OBJ_DEVICE=HETERO:FPGA,CPU
 %env PERSON_DEVICE=HETERO:FPGA,CPU
 ```
-
+-->
 ### Run with multiple devices
 To run the application with multiple devices use **MULTI:device1,device2**, export the environmental variables given below in the first cell, then click on the Kernel menu and select **Restart & Run All** from the drop-down list.<br>
 For example: `MULTI:CPU,GPU,MYRIAD`
@@ -341,7 +337,6 @@ For example: `MULTI:CPU,GPU,MYRIAD`
    %env MOOD_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/emotions-recognition-retail-0003/FP16/emotions-recognition-retail-0003.xml
    %env PERSON_MODEL=/opt/intel/openvino/deployment_tools/open_model_zoo/tools/downloader/intel/person-detection-retail-0002/FP16/person-detection-retail-0002.xml
    %env OBJ_MODEL=../resources/FP16/mobilenet-ssd.xml
-   %env CPU_EXTENSION=/opt/intel/openvino/inference_engine/lib/intel64/libcpu_extension_sse4.so
    %env LABEL_FILE=../resources/labels.txt
    %env FLAG=async
    %env FACE_DEVICE=MULTI:CPU,GPU,MYRIAD
@@ -353,7 +348,7 @@ For example: `MULTI:CPU,GPU,MYRIAD`
    
 ### Visualize on Grafana
 
-1. Start the Grafana server:
+1. Open a new tab on the terminal and start the Grafana server using the following command:
    ```
    sudo service grafana-server start
    ```
