@@ -1,75 +1,31 @@
-FROM ubuntu:16.04
 
-ADD . /app
-WORKDIR /app
-ENV http_proxy 'http://proxy-iind.intel.com:911'
-ENV https_proxy 'http://proxy-iind.intel.com:911'
+FROM openvino/ubuntu20_dev:2022.2.0
 
-ARG INSTALL_DIR=/opt/intel/openvino
-ARG OPENVINO=l_openvino_toolkit_p_2020.3.194.tgz
-ARG COUNTRY=1
-ARG IMAGE=mssi
-ARG VERSION=1.0
+ENV http_proxy 'http://proxy-dmz.intel.com:911'
+ENV https_proxy 'http://proxy-dmz.intel.com:912'
+ENV no_proxy '127.0.0.1,localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.svc,.svc.cluster.local,intel.com,10.2.127.101,.intel.com'
 
-RUN apt-get update && apt-get -y upgrade && apt-get autoremove
+USER root
+RUN omz_downloader --name face-detection-adas-0001,head-pose-estimation-adas-0001,emotions-recognition-retail-0003,person-detection-retail-0002,mobilenet-ssd
 
-#Install needed dependences
-RUN apt-get install -y --no-install-recommends \
-        build-essential \
-        cpio \
-        curl \
-        git \
-        lsb-release \
-        pciutils \
-        python3.5 \
-        python3.5-dev \
-        python3-pip \
-        python3-setuptools \
-        wget \
-        sudo
+RUN mkdir -p /app/resources
 
-#Upgrading the pip version
-RUN pip3 install --upgrade pip
+RUN apt-get update && apt-get upgrade -y && apt-get install -y wget && apt-get clean
+RUN pip3 install openvino-dev[caffe]==2022.2.0
+RUN pip3 install protobuf==3.20.3
+RUN pip3 install influxdb==5.3.1
+RUN pip3 install flask==2.2.2
 
-#Downloading Openvino toolkit
-RUN cd /app && \
-    wget -O $OPENVINO http://registrationcenter-download.intel.com/akdlm/irc_nas/16670/$OPENVINO
+RUN apt-get install -y libopencv-dev python3-opencv
 
-RUN tar -xvzf $OPENVINO
-
-# Installing OpenVINO dependencies
-RUN cd /app/l_openvino_toolkit* && \
-   ./install_openvino_dependencies.sh
-
-RUN pip3 install numpy requests influxdb flask pyyaml pathlib
-
-# Installing OpenVINO itself
-RUN cd /app/l_openvino_toolkit* && \
-    sed -i 's/decline/accept/g' silent.cfg && \
-    ./install.sh --silent silent.cfg
-
-RUN /bin/bash -c "source $INSTALL_DIR/bin/setupvars.sh"
-
-RUN echo "source $INSTALL_DIR/bin/setupvars.sh" >> /root/.bashrc
-
-RUN cd $INSTALL_DIR/deployment_tools/model_optimizer/install_prerequisites/ && \
-    ./install_prerequisites.sh && \
-    ./install_prerequisites_caffe.sh
-
-RUN cd $INSTALL_DIR/deployment_tools/tools/model_downloader && \
-    ./downloader.py --name face-detection-adas-0001 && \
-    ./downloader.py --name head-pose-estimation-adas-0001 && \
-    ./downloader.py --name emotions-recognition-retail-0003 && \
-    ./downloader.py --name person-detection-retail-0002 && \
-    ./downloader.py --name mobilenet-ssd
-
-RUN cd $INSTALL_DIR/deployment_tools/model_optimizer/ && \
-    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/open_model_zoo/tools/downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o /app/resources/FP32 --data_type FP32 --scale 256 --mean_values [127,127,127] && \
-    ./mo_caffe.py --input_model $INSTALL_DIR/deployment_tools/open_model_zoo/tools/downloader/public/mobilenet-ssd/mobilenet-ssd.caffemodel  -o /app/resources/FP16 --data_type FP16 --scale 256 --mean_values [127,127,127]
+RUN mo --input_model /opt/intel/openvino_2022.2.0.7713/public/mobilenet-ssd/mobilenet-ssd.caffemodel --data_type FP32 --scale 256 --mean_values [127,127,127] -o /app/resources/FP32
+RUN mo --input_model /opt/intel/openvino_2022.2.0.7713/public/mobilenet-ssd/mobilenet-ssd.caffemodel --data_type FP16 --scale 256 --mean_values [127,127,127] -o /app/resources/FP16
 
 RUN cd /app/resources && \
     wget -O face-demographics-walking.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/face-demographics-walking.mp4 && \
     wget -O bottle-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/bottle-detection.mp4 && \
     wget -O head-pose-face-detection-female.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/head-pose-face-detection-female.mp4
+COPY . /app
 
-CMD ["/bin/bash"]
+
+CMD ["/bin/bash", "-c", "cd /app/application && python3 smart_retail_analytics.py -fm /opt/intel/openvino_2022.2.0.7713/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml -pm /opt/intel/openvino_2022.2.0.7713/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino_2022.2.0.7713/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino_2022.2.0.7713/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb /app/resources/labels.txt -ip localhost"]

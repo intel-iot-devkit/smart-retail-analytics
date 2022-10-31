@@ -1,4 +1,4 @@
-FROM influxdb:1.3.1-alpine
+FROM influxdb:1.8.0-alpine
 
 WORKDIR /app
 COPY entrypoint.sh ./
