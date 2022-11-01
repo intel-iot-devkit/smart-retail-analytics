@@ -5,9 +5,9 @@
 replicaCount: 1
 
 image:
-  smartRetailRepository: amr-registry-pre.caas.intel.com/iotg-manageability/smart-retail-analytics/retail-analytics
-  influxdbRepository: amr-registry-pre.caas.intel.com/iotg-manageability/smart-retail-analytics/influxdb
-  pullPolicy: IfNotPresent
+  smartRetailRepository: harbor.default.svc.cluster.local/library/retail-analytics
+  influxdbRepository: harbor.default.svc.cluster.local/library/influxdb
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 

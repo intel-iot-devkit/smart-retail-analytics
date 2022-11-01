@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sra-nginx-pv
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /sra-nginx
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sra-nginx-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "10Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sra-nginx
+spec:
+  selector:
+    matchLabels:
+      run: sra-nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: sra-nginx
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists
+      volumes:
+      - name: sra-nginx-pvc-volume
+        persistentVolumeClaim:
+          claimName: sra-nginx-pvc
+      containers:
+      - name: sra-nginx
+        image: nginx:stable
+        ports:
+        - containerPort: 80
+          name: http-web-svc
+        volumeMounts:
+          - mountPath: "/usr/share/nginx/html"
+            name: sra-nginx-pvc-volume
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sra-nginx-service
+  labels:
+    run: sra-nginx-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: sra-nginx

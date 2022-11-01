@@ -26,6 +26,7 @@ RUN cd /app/resources && \
     wget -O bottle-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/bottle-detection.mp4 && \
     wget -O head-pose-face-detection-female.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/head-pose-face-detection-female.mp4
 COPY . /app
+COPY startup.sh /startup.sh
+RUN chmod a+x /startup.sh
 
-
-CMD ["/bin/bash", "-c", "cd /app/application && python3 smart_retail_analytics.py -fm /opt/intel/openvino_2022.2.0.7713/intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml -pm /opt/intel/openvino_2022.2.0.7713/intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml -mm /opt/intel/openvino_2022.2.0.7713/intel/emotions-recognition-retail-0003/FP32/emotions-recognition-retail-0003.xml -om ../resources/FP32/mobilenet-ssd.xml -pr /opt/intel/openvino_2022.2.0.7713/intel/person-detection-retail-0002/FP32/person-detection-retail-0002.xml -lb /app/resources/labels.txt -ip localhost"]
+CMD ["/startup.sh"]
