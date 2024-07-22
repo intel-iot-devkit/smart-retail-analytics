@@ -1,6 +1,5 @@
 # Retail Analytics
 
- 
 | Details           |              |
 |-----------------------|---------------|
 | Target OS:            |  Ubuntu\* 18.04 LTS   |
